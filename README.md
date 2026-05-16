@@ -51,6 +51,7 @@ These tools work with gesture, proximity, and prediction — the minimum possibl
 - 🌊 `floatbar.py` — Always-on-top bar: ← back to last window, → forward to next
 - 🔍 `windowbot.py` — Window search and switcher with near-zero input
 - 🎪 `hub.py` — Master launchpad with one visual per tool
+- 📎 `paperclip.py` — **Triple-right-click anywhere → instant context bookmark.** The moment you realise you've drifted off-task, you don't have to find the words. You just click. It listens on the way in and grabs everything at once — URL, active window, active browser tab, timestamp — verified across multiple methods (listener + script + screenshot + 10 other data paths) so nothing is missed. A small paperclip floats on the desktop tracking the session: *"Hey — remember you were working on this?"* Configurable nudge timers (3–7 min default), auto-close after a set idle window, fresh session opened on every triple-click. All timings, triggers, and behaviour live in the system tray settings icon.
 
 > *"He had his eyes. He had his mouth. He had his hands. We didn't have his brain that day — so we built a brain."*
 
@@ -66,6 +67,7 @@ These tools work with gesture, proximity, and prediction — the minimum possibl
 | 🏁 Window Tiles | [→](https://github.com/lozturner/lawrence-window-tiles) | Sidebar + canvas of all open windows |
 | 🌳 Window Branch | [→](https://github.com/lozturner/lawrence-window-branch) | Radial tree of all open windows + tabs |
 | 🔥 Hot Corners | [→](https://github.com/lozturner/lawrence-hot-corners) | Mouse corner triggers any action |
+| 📎 Paperclip | *(planned)* | Triple-right-click → capture context (URL, window, tab, time) + floating return-to-task nudge |
 | 🧹 SelfClean | [→](https://github.com/lozturner/lawrence-selfclean) | Single-instance enforcer (shared util) |
 | 📦 Move In (full) | [→](https://github.com/lozturner/lawrence-move-in) | All scripts in one place |
 
