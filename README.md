@@ -67,7 +67,7 @@ These tools work with gesture, proximity, and prediction — the minimum possibl
 | 🏁 Window Tiles | [→](https://github.com/lozturner/lawrence-window-tiles) | Sidebar + canvas of all open windows |
 | 🌳 Window Branch | [→](https://github.com/lozturner/lawrence-window-branch) | Radial tree of all open windows + tabs |
 | 🔥 Hot Corners | [→](https://github.com/lozturner/lawrence-hot-corners) | Mouse corner triggers any action |
-| 📎 Paperclip | *(planned)* | Triple-right-click → capture context (URL, window, tab, time) + floating return-to-task nudge |
+| 📎 Paperclip | [`paperclip.py`](./paperclip.py) | Triple-right-click → capture context (URL, window, tab, time) + floating return-to-task nudge |
 | 🧹 SelfClean | [→](https://github.com/lozturner/lawrence-selfclean) | Single-instance enforcer (shared util) |
 | 📦 Move In (full) | [→](https://github.com/lozturner/lawrence-move-in) | All scripts in one place |
 
