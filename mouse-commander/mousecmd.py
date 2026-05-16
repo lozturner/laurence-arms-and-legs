@@ -112,12 +112,23 @@ def broadcast_event(data: dict):
             event_subscribers.remove(q)
 
 # ── Input capture ─────────────────────────────────────────────────────────────
+IS_WIN = sys.platform == "win32"
+
 if HAS_INPUT:
-    EXTRA_MOUSE_BUTTONS = {
-        Button.x1: "mouse_x1",
-        Button.x2: "mouse_x2",
-    }
-    STANDARD_BUTTONS = {Button.left, Button.middle, Button.right}
+    STANDARD_BUTTONS = {Button.left, Button.middle, Button.right,
+                        Button.scroll_up, Button.scroll_down}
+    # Build extra button map: covers Windows x1/x2 and Linux button8-button30
+    EXTRA_MOUSE_BUTTONS = {}
+    if IS_WIN:
+        for attr, label in (("x1", "mouse_x1"), ("x2", "mouse_x2")):
+            b = getattr(Button, attr, None)
+            if b:
+                EXTRA_MOUSE_BUTTONS[b] = label
+    else:
+        for n in range(8, 31):
+            b = getattr(Button, f"button{n}", None)
+            if b:
+                EXTRA_MOUSE_BUTTONS[b] = f"mouse_btn{n}"
 else:
     EXTRA_MOUSE_BUTTONS = {}
     STANDARD_BUTTONS = set()
@@ -354,71 +365,218 @@ def api_simulate():
     register_button(bid, source, f"sim:{bid}")
     return jsonify({"ok": True, "button_id": bid})
 
-# ── Tray icon ─────────────────────────────────────────────────────────────────
-def make_tray_icon(active=False):
+# ── Tray — custom Xlib floating icon window ───────────────────────────────────
+# Works on any X11 display (Xvfb, real desktop) without needing an XEMBED tray host.
+# Falls back gracefully if X11 is unavailable.
+
+def _make_icon_pixels(active=False, size=48):
+    """Return flat RGB pixel bytes for the tray icon."""
     if not HAS_PIL:
-        return None
-    try:
-        size = 64
-        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        d = ImageDraw.Draw(img)
-        color = (80, 200, 120) if active else (100, 120, 200)
-        d.ellipse([4, 4, 60, 60], fill=color)
-        d.ellipse([22, 22, 42, 42], fill=(255, 255, 255, 200))
-        return img
-    except Exception:
-        return None
-
-tray_icon = None
-
-def open_ui(icon=None, item=None):
-    webbrowser.open(f"http://localhost:{PORT}")
-
-def toggle_learn(icon=None, item=None):
-    with config_lock:
-        config["learn_mode"] = not config.get("learn_mode", True)
-        save_config(config)
-    broadcast_event({"type": "config_updated", "config": config})
-
-def toggle_override(icon=None, item=None):
-    with config_lock:
-        config["override_active"] = not config.get("override_active", False)
-        save_config(config)
-    broadcast_event({"type": "config_updated", "config": config})
-    if tray_icon:
-        tray_icon.icon = make_tray_icon(config.get("override_active"))
-
-def quit_app(icon=None, item=None):
-    if tray_icon:
-        tray_icon.stop()
-    os._exit(0)
-
-def reset_captures(icon=None, item=None):
-    with captured_lock:
-        captured_buttons.clear()
-    broadcast_event({"type": "reset"})
+        return None, size
+    img = Image.new("RGB", (size, size), (30, 30, 50))
+    d = ImageDraw.Draw(img)
+    color = (80, 200, 120) if active else (100, 120, 200)
+    d.ellipse([3, 3, size-4, size-4], fill=color)
+    d.ellipse([size//3, size//3, size*2//3, size*2//3], fill=(255, 255, 255))
+    return img.tobytes("raw", "RGB"), size
 
 def build_tray():
-    global tray_icon
-    if not HAS_TRAY:
+    """Run a floating icon window via Xlib on its own thread."""
+    if HEADLESS:
         return
     try:
-        menu = pystray.Menu(
-            item("Open Admin UI", open_ui, default=True),
-            pystray.Menu.SEPARATOR,
-            item(lambda t: f"{'✓ ' if config.get('learn_mode') else ''}Learn Mode", toggle_learn),
-            item(lambda t: f"{'✓ ' if config.get('override_active') else ''}Override Active", toggle_override),
-            pystray.Menu.SEPARATOR,
-            item("Reset Captures", reset_captures),
-            pystray.Menu.SEPARATOR,
-            item("Quit", quit_app),
-        )
-        icon_img = make_tray_icon()
-        if icon_img:
-            tray_icon = pystray.Icon("MouseCommander", icon_img, "MouseCommander", menu)
-            tray_icon.run()
+        from Xlib import display as Xdisplay, X, Xutil, protocol
+        from Xlib.ext import shape
+    except ImportError:
+        print("[MouseCommander] python-xlib not available, tray skipped.")
+        return
+
+    try:
+        dpy = Xdisplay.Display()
     except Exception as e:
-        print(f"[MouseCommander] Tray unavailable: {e}")
+        print(f"[MouseCommander] Tray: cannot open display: {e}")
+        return
+
+    ICON_SIZE = 48
+    MENU_ITEMS = [
+        ("Open Admin UI",     lambda: webbrowser.open(f"http://localhost:{PORT}")),
+        ("",                  None),
+        ("Toggle Learn Mode", lambda: _tray_toggle("learn_mode")),
+        ("Toggle Override",   lambda: _tray_toggle("override_active")),
+        ("",                  None),
+        ("Reset Captures",    lambda: (captured_buttons.clear(), broadcast_event({"type":"reset"}))),
+        ("",                  None),
+        ("Quit",              lambda: os._exit(0)),
+    ]
+
+    def _tray_toggle(key):
+        with config_lock:
+            config[key] = not config.get(key, False)
+            save_config(config)
+        broadcast_event({"type": "config_updated", "config": config})
+
+    screen     = dpy.screen()
+    root       = screen.root
+    sw, sh     = screen.width_in_pixels, screen.height_in_pixels
+    white      = screen.white_pixel
+    black      = screen.black_pixel
+
+    # ── Icon window (always on top, top-right corner) ──────────────────────────
+    icon_win = root.create_window(
+        sw - ICON_SIZE - 4, 4, ICON_SIZE, ICON_SIZE, 0,
+        screen.root_depth,
+        X.InputOutput, X.CopyFromParent,
+        background_pixel=black,
+        event_mask=(X.ExposureMask | X.ButtonPressMask | X.EnterWindowMask | X.LeaveWindowMask),
+        override_redirect=True,
+    )
+    icon_win.set_wm_name("MouseCommander")
+    icon_win.set_wm_class("mousecmd", "MouseCommander")
+
+    # Keep on top via _NET_WM_STATE
+    try:
+        net_wm_state       = dpy.intern_atom("_NET_WM_STATE")
+        net_wm_state_above = dpy.intern_atom("_NET_WM_STATE_ABOVE")
+        icon_win.change_property(net_wm_state, X.XA_ATOM, 32, [net_wm_state_above])
+    except Exception:
+        pass
+
+    icon_win.map()
+
+    # ── GC + pixel drawing helpers ─────────────────────────────────────────────
+    gc = icon_win.create_gc(foreground=white, background=black)
+
+    def draw_icon():
+        active = config.get("override_active", False)
+        # Background
+        gc.change(foreground=0x1e1e32)
+        icon_win.fill_rectangle(gc, 0, 0, ICON_SIZE, ICON_SIZE)
+        # Outer circle
+        col = 0x50C878 if active else 0x7C6AFA
+        gc.change(foreground=col)
+        icon_win.fill_arc(gc, 3, 3, ICON_SIZE-6, ICON_SIZE-6, 0, 360*64)
+        # Inner dot
+        gc.change(foreground=0xffffff)
+        s = ICON_SIZE // 4
+        icon_win.fill_arc(gc, ICON_SIZE//2 - s//2, ICON_SIZE//2 - s//2, s, s, 0, 360*64)
+        # Status ring when active
+        if active:
+            gc.change(foreground=0xffffff, line_width=2)
+            icon_win.draw_arc(gc, 6, 6, ICON_SIZE-12, ICON_SIZE-12, 0, 360*64)
+
+    # ── Popup menu ─────────────────────────────────────────────────────────────
+    MENU_H      = 22
+    MENU_W      = 190
+    menu_win    = None
+    menu_active = False
+
+    def close_menu():
+        nonlocal menu_win, menu_active
+        if menu_win:
+            try:
+                menu_win.unmap()
+                menu_win.destroy()
+            except Exception:
+                pass
+            menu_win = None
+        menu_active = False
+
+    def open_menu():
+        nonlocal menu_win, menu_active
+        close_menu()
+        visible = [(lbl, fn) for lbl, fn in MENU_ITEMS]
+        mh = MENU_H * len(visible) + 4
+        mx = sw - MENU_W - 4
+        my = ICON_SIZE + 8
+        mw = root.create_window(
+            mx, my, MENU_W, mh, 1,
+            screen.root_depth, X.InputOutput, X.CopyFromParent,
+            background_pixel=0x1e1e30,
+            border_pixel=0x4a4a70,
+            event_mask=(X.ExposureMask | X.ButtonPressMask |
+                        X.ButtonReleaseMask | X.PointerMotionMask |
+                        X.LeaveWindowMask),
+            override_redirect=True,
+        )
+        mw.map()
+        menu_win = mw
+        menu_active = True
+        mgc = mw.create_gc(foreground=0xf0f0ff, background=0x1e1e30)
+
+        def draw_menu():
+            mw.fill_rectangle(mgc, 0, 0, MENU_W, mh)
+            for i, (lbl, _fn) in enumerate(visible):
+                y = i * MENU_H + 2
+                if not lbl:
+                    mgc.change(foreground=0x3a3a55)
+                    mw.fill_rectangle(mgc, 6, y + MENU_H//2, MENU_W - 12, 1)
+                    mgc.change(foreground=0xf0f0ff)
+                else:
+                    # Draw label as white text using default font
+                    try:
+                        mw.draw_string(mgc, 12, y + 15, lbl)
+                    except Exception:
+                        # fallback: colored bar to indicate item
+                        mgc.change(foreground=0x5a5a8a)
+                        mw.fill_rectangle(mgc, 4, y + 3, MENU_W - 8, MENU_H - 6)
+                        mgc.change(foreground=0xf0f0ff)
+        draw_menu()
+        dpy.flush()
+        return visible, mgc, draw_menu
+
+    def handle_menu_click(evt, visible, mgc, draw_menu):
+        if evt.type != X.ButtonRelease:
+            return
+        idx = (evt.event_y - 2) // MENU_H
+        if 0 <= idx < len(visible):
+            _lbl, fn = visible[idx]
+            if fn:
+                close_menu()
+                threading.Thread(target=fn, daemon=True).start()
+                return
+        close_menu()
+
+    # ── Event loop ─────────────────────────────────────────────────────────────
+    print(f"[MouseCommander] Tray icon shown at top-right of display :{os.environ.get('DISPLAY','?')}")
+    visible_menu = None
+    mgc_ref      = None
+    draw_menu_fn = None
+
+    try:
+        draw_icon()
+        dpy.flush()
+
+        while True:
+            evt = dpy.next_event()
+
+            if evt.type == X.Expose:
+                draw_icon()
+                dpy.flush()
+
+            elif evt.type == X.ButtonPress:
+                if evt.window == icon_win:
+                    if evt.detail == X.Button3 or evt.detail == X.Button1:
+                        if menu_active:
+                            close_menu()
+                        else:
+                            visible_menu, mgc_ref, draw_menu_fn = open_menu()
+                            dpy.flush()
+
+                elif menu_win and evt.window == menu_win:
+                    handle_menu_click(
+                        type("e", (), {"type": X.ButtonRelease,
+                                       "event_y": evt.event_y})(),
+                        visible_menu, mgc_ref, draw_menu_fn)
+
+            elif evt.type == X.ButtonRelease:
+                if menu_win and evt.window == menu_win:
+                    handle_menu_click(evt, visible_menu, mgc_ref, draw_menu_fn)
+
+            elif evt.type == X.LeaveNotify:
+                pass  # keep menu open until explicit close
+
+    except Exception as e:
+        print(f"[MouseCommander] Tray loop ended: {e}")
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 def start_flask():
@@ -453,12 +611,11 @@ def main():
             print(f"[MouseCommander] Keyboard listener failed: {e}")
 
     if not HEADLESS:
-        # Tray blocks the main thread (required by pystray on most platforms)
-        build_tray()
-    else:
-        # Headless: block on Flask thread
-        print(f"[MouseCommander] Web UI ready → http://localhost:{PORT}")
-        flask_thread.join()
+        tray_thread = threading.Thread(target=build_tray, daemon=True)
+        tray_thread.start()
+
+    print(f"[MouseCommander] Web UI ready → http://localhost:{PORT}")
+    flask_thread.join()
 
 if __name__ == "__main__":
     main()
