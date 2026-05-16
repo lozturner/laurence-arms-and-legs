@@ -1,0 +1,70 @@
+name: Build paperclip.exe
+
+on:
+  push:
+    branches:
+      - claude/refocus-main-task-XsSmO
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pynput pystray pillow pywin32 psutil pyperclip mss uiautomation comtypes
+
+      - name: Build paperclip.exe
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --onefile --windowed --name paperclip --icon NONE `
+            --hidden-import pystray._win32 `
+            --hidden-import PIL._tkinter_finder `
+            --hidden-import comtypes `
+            --hidden-import comtypes.stream `
+            --collect-submodules uiautomation `
+            --collect-submodules pystray `
+            --collect-submodules pynput `
+            paperclip.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paperclip-exe
+          path: dist/paperclip.exe
+
+      - name: Create / update release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: paperclip-latest
+          name: paperclip (latest build)
+          prerelease: false
+          make_latest: true
+          files: dist/paperclip.exe
+          body: |
+            # Paperclip — latest Windows build
+
+            ## How to download
+            1. Click `paperclip.exe` in the **Assets** list below.
+            2. Save it anywhere (Desktop is fine).
+
+            ## How to run
+            1. Double-click `paperclip.exe`.
+            2. A small paperclip icon appears in your system tray.
+            3. Triple-right-click anywhere to capture context.
+
+            No Python install, no command line, no setup. Just download and double-click.
