@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "description": "Triple-right-click to capture window/tab/URL/screenshot — floating reminder paperclip. Part of the Laurence: Arms and Legs suite.",
+  "homepage": "https://github.com/lozturner/laurence-arms-and-legs",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/lozturner/laurence-arms-and-legs/releases/download/paperclip-latest/paperclip.exe#/dl.7z"
+    }
+  },
+  "bin": "paperclip.exe",
+  "shortcuts": [
+    ["paperclip.exe", "Paperclip"]
+  ],
+  "checkver": {
+    "github": "https://github.com/lozturner/laurence-arms-and-legs"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/lozturner/laurence-arms-and-legs/releases/download/paperclip-latest/paperclip.exe"
+      }
+    }
+  },
+  "notes": [
+    "Paperclip installed. Launch from Start Menu or run 'paperclip' from any shell.",
+    "Triple-right-click anywhere to capture context. Settings live in %APPDATA%\\paperclip\\settings.json."
+  ]
+}

@@ -27,10 +27,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller pynput pystray pillow pywin32 psutil pyperclip mss uiautomation comtypes
 
-      - name: Build paperclip.exe
+      - name: Generate icon
+        shell: pwsh
+        run: python build_assets/make_icon.py
+
+      - name: Build paperclip.exe (with version info + icon)
         shell: pwsh
         run: |
-          pyinstaller --noconfirm --onefile --windowed --name paperclip --icon NONE `
+          pyinstaller --noconfirm --onefile --windowed --name paperclip `
+            --icon build_assets/paperclip.ico `
+            --version-file build_assets/version_info.txt `
             --hidden-import pystray._win32 `
             --hidden-import PIL._tkinter_finder `
             --hidden-import comtypes `
@@ -39,6 +45,17 @@ jobs:
             --collect-submodules pystray `
             --collect-submodules pynput `
             paperclip.py
+
+      - name: Compute SHA256
+        id: hash
+        shell: pwsh
+        run: |
+          $h = (Get-FileHash dist/paperclip.exe -Algorithm SHA256).Hash.ToLower()
+          $size = (Get-Item dist/paperclip.exe).Length
+          echo "sha256=$h" >> $env:GITHUB_OUTPUT
+          echo "size=$size" >> $env:GITHUB_OUTPUT
+          echo "SHA256: $h"
+          echo "Size:   $size bytes"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -58,6 +75,11 @@ jobs:
           body: |
             # Paperclip — latest Windows build
 
+            **Version:** 0.2.0
+            **SHA256:** `${{ steps.hash.outputs.sha256 }}`
+            **Size:** ${{ steps.hash.outputs.size }} bytes
+            **Source commit:** ${{ github.sha }}
+
             ## How to download
             1. Click `paperclip.exe` in the **Assets** list below.
             2. Save it anywhere (Desktop is fine).
@@ -67,4 +89,32 @@ jobs:
             2. A small paperclip icon appears in your system tray.
             3. Triple-right-click anywhere to capture context.
 
-            No Python install, no command line, no setup. Just download and double-click.
+            No Python install, no command line, no setup.
+
+            ## About the SmartScreen warning
+
+            The exe is unsigned (paid code-signing certs cost money). On first
+            run Windows shows **"Windows protected your PC"** → click **More
+            info** → **Run anyway**. That's normal for new free software.
+
+            Want to verify it's the real build? Open PowerShell and run:
+            ```powershell
+            (Get-FileHash paperclip.exe -Algorithm SHA256).Hash
+            ```
+            It should match the SHA256 above.
+
+            Want a second opinion? Drop the file on
+            <https://www.virustotal.com/gui/home/upload> — every major
+            antivirus engine scans it instantly, free.
+
+            False positive in Windows Defender? Submit it here (free, takes
+            a few days for the warning to clear globally):
+            <https://www.microsoft.com/en-us/wdsi/filesubmission>
+
+            ## Installing via Scoop (skips SmartScreen entirely)
+
+            If you have [Scoop](https://scoop.sh):
+            ```powershell
+            scoop install https://raw.githubusercontent.com/lozturner/laurence-arms-and-legs/claude/refocus-main-task-XsSmO/scoop/paperclip.json
+            ```
+            Scoop is a trusted publisher to Windows, so no SmartScreen prompt.
