@@ -319,17 +319,157 @@ class TripleRightClick:
             threading.Thread(target=self.on_triple, daemon=True).start()
 
 
+VERSION = "0.2.0"
+REPO_URL = "https://github.com/lozturner/laurence-arms-and-legs"
+WEBSITE_URL = "https://github.com/lozturner/laurence-arms-and-legs#readme"
+LICENSE_TEXT = "MIT License — © 2026 Loz Turner. Free to use, modify, share."
+
+WHAT_IS_THIS = (
+    "PAPERCLIP — what it does\n"
+    "─────────────────────────\n\n"
+    "You're working on something. Your brain drifts off-task. You realise\n"
+    "you've drifted — but if you stop to write a note, the words won't come\n"
+    "and you'll lose what you were doing.\n\n"
+    "So you don't write a note. You just RIGHT-CLICK 3 TIMES FAST,\n"
+    "anywhere on screen. That's it.\n\n"
+    "Paperclip silently saves:\n"
+    "  • the window you were in\n"
+    "  • the browser tab + URL\n"
+    "  • a screenshot\n"
+    "  • the timestamp\n\n"
+    "A little paperclip floats on your desktop with a counter. Every few\n"
+    "minutes it nudges you: 'Hey — remember you were working on this?'\n\n"
+    "When you're ready, click the paperclip to see the list and jump back.\n"
+)
+
+ABOUT_TEXT = (
+    f"Paperclip v{VERSION}\n\n"
+    "Part of the Laurence: Arms and Legs suite — tools built for one person\n"
+    "navigating the world through whatever combination of eyes, hands, mouth,\n"
+    "and brain was available on any given day.\n\n"
+    "Built by Loz Turner with Claude (Anthropic), 2026.\n\n"
+    f"{LICENSE_TEXT}"
+)
+
+
 # ---------- System tray ----------
 
-def build_tray(on_quit, on_show_folder):
+def _popup_message(title: str, body: str):
+    """Show a simple read-only text popup. Runs on the Tk thread."""
+    win = tk.Toplevel()
+    win.title(title)
+    win.configure(bg="#1e1e1e")
+    win.geometry("520x420")
+    win.attributes("-topmost", True)
+    txt = tk.Text(win, wrap="word", bg="#1e1e1e", fg="#ecf0f1",
+                  font=("Segoe UI", 10), padx=14, pady=12, borderwidth=0)
+    txt.insert("1.0", body)
+    txt.configure(state="disabled")
+    txt.pack(fill="both", expand=True)
+    tk.Button(win, text="Close", command=win.destroy,
+              bg="#34495e", fg="white", borderwidth=0, padx=12, pady=4).pack(pady=8)
+
+
+def _startup_shortcut_path() -> Path:
+    return Path(os.environ.get("APPDATA", str(Path.home()))) / \
+        "Microsoft/Windows/Start Menu/Programs/Startup/Paperclip.lnk"
+
+
+def _is_installed_at_startup() -> bool:
+    return _startup_shortcut_path().exists()
+
+
+def _install_at_startup():
+    try:
+        target = sys.executable if getattr(sys, "frozen", False) else \
+            str(Path(__file__).with_name("launch_paperclip.pyw"))
+        import subprocess
+        ps = (
+            f"$s=New-Object -ComObject WScript.Shell; "
+            f"$l=$s.CreateShortcut('{_startup_shortcut_path()}'); "
+            f"$l.TargetPath='{target}'; $l.Save()"
+        )
+        subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=False)
+    except Exception:
+        pass
+
+
+def _uninstall_from_startup():
+    try:
+        _startup_shortcut_path().unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def build_tray(root: tk.Tk, clip, on_quit, on_show_folder):
     if not pystray:
         return None
+    import webbrowser, shutil
+
+    def ui(fn):
+        return lambda *_: root.after(0, fn)
+
+    def open_url(url):
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
+
+    def open_settings_file():
+        try:
+            os.startfile(str(SETTINGS_FILE))  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+    def export_json():
+        try:
+            from tkinter import filedialog
+            dest = filedialog.asksaveasfilename(
+                defaultextension=".json",
+                initialfile=f"paperclip_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                filetypes=[("JSON", "*.json")],
+            )
+            if dest and SESSIONS_FILE.exists():
+                shutil.copy(SESSIONS_FILE, dest)
+        except Exception:
+            pass
+
+    def toggle_dev_mode(icon, item):
+        clip.dev_mode = not getattr(clip, "dev_mode", False)
+        if clip.dev_mode:
+            _popup_message("Development mode ON",
+                           f"Verbose logging to:\n{DATA_DIR / 'debug.log'}\n\n"
+                           "Captures will print full details to that file.")
+
+    def is_dev_mode(item):
+        return getattr(clip, "dev_mode", False)
+
+    def toggle_startup(icon, item):
+        if _is_installed_at_startup():
+            _uninstall_from_startup()
+        else:
+            _install_at_startup()
+
     img = _paperclip_image(64)
     menu = pystray.Menu(
+        pystray.MenuItem("What is this?", ui(lambda: _popup_message("What is Paperclip?", WHAT_IS_THIS))),
+        pystray.MenuItem("About", ui(lambda: _popup_message("About Paperclip", ABOUT_TEXT))),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Website", lambda *_: open_url(WEBSITE_URL)),
+        pystray.MenuItem("GitHub repository", lambda *_: open_url(REPO_URL)),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Settings", ui(open_settings_file)),
         pystray.MenuItem("Open data folder", lambda *_: on_show_folder()),
-        pystray.MenuItem("Quit", lambda icon, _: (icon.stop(), on_quit())),
+        pystray.MenuItem("Export sessions (JSON)", ui(export_json)),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Start with Windows", toggle_startup,
+                         checked=lambda item: _is_installed_at_startup()),
+        pystray.MenuItem("Development mode", toggle_dev_mode, checked=is_dev_mode),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem(f"Paperclip v{VERSION}", None, enabled=False),
+        pystray.MenuItem("Exit", lambda icon, _: (icon.stop(), on_quit())),
     )
-    return pystray.Icon(APP_NAME, img, "Paperclip", menu)
+    return pystray.Icon(APP_NAME, img, f"Paperclip v{VERSION}", menu)
 
 
 # ---------- Main ----------
@@ -338,11 +478,19 @@ def main():
     settings = load_settings()
     root = tk.Tk()
     clip = FloatingClip(root, settings)
+    clip.dev_mode = False
 
     def on_triple():
         c = capture_context()
         append_session(c)
         clip.add(c)
+        if getattr(clip, "dev_mode", False):
+            try:
+                (DATA_DIR / "debug.log").open("a").write(
+                    f"{c.timestamp}  {c.process_name}  {c.window_title}  {c.url}\n"
+                )
+            except Exception:
+                pass
 
     listener = mouse.Listener(on_click=TripleRightClick(settings["triple_click_window_ms"], on_triple))
     listener.daemon = True
@@ -354,7 +502,7 @@ def main():
         except Exception:
             pass
 
-    tray = build_tray(on_quit=root.quit, on_show_folder=show_folder)
+    tray = build_tray(root, clip, on_quit=root.quit, on_show_folder=show_folder)
     if tray is not None:
         threading.Thread(target=tray.run, daemon=True).start()
 
