@@ -51,6 +51,7 @@ These tools work with gesture, proximity, and prediction — the minimum possibl
 - 🌊 `floatbar.py` — Always-on-top bar: ← back to last window, → forward to next
 - 🔍 `windowbot.py` — Window search and switcher with near-zero input
 - 🎪 `hub.py` — Master launchpad with one visual per tool
+- 🖱️ `mouse-commander/` — MMO mouse button mapper; no firmware needed. System tray + localhost admin UI.
 
 > *"He had his eyes. He had his mouth. He had his hands. We didn't have his brain that day — so we built a brain."*
 
@@ -68,6 +69,7 @@ These tools work with gesture, proximity, and prediction — the minimum possibl
 | 🔥 Hot Corners | [→](https://github.com/lozturner/lawrence-hot-corners) | Mouse corner triggers any action |
 | 🧹 SelfClean | [→](https://github.com/lozturner/lawrence-selfclean) | Single-instance enforcer (shared util) |
 | 📦 Move In (full) | [→](https://github.com/lozturner/lawrence-move-in) | All scripts in one place |
+| 🖱️ MouseCommander | `mouse-commander/` | Redragon MMO mouse mapper — no firmware needed |
 
 ---
 

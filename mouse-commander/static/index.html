@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MouseCommander</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- Background orbs -->
+  <div class="bg-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Tutorial overlay -->
+  <div id="tutorial-overlay" class="tutorial-overlay hidden">
+    <div class="tutorial-backdrop"></div>
+    <div class="tutorial-spotlight" id="tutorial-spotlight"></div>
+    <div class="tutorial-bubble" id="tutorial-bubble">
+      <div class="tutorial-step-badge" id="tutorial-step-badge">1 / 5</div>
+      <h3 id="tutorial-title">Welcome to MouseCommander</h3>
+      <p id="tutorial-text">Let's get your mouse set up in about a minute.</p>
+      <div class="tutorial-actions">
+        <button class="btn btn-ghost" id="tutorial-skip">Skip</button>
+        <button class="btn btn-primary" id="tutorial-next">Let's go →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App shell -->
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="20" cy="20" r="18" stroke="url(#lg1)" stroke-width="2.5"/>
+            <circle cx="20" cy="20" r="8" fill="url(#lg1)" opacity="0.9"/>
+            <circle cx="20" cy="20" r="3" fill="white"/>
+            <defs>
+              <linearGradient id="lg1" x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#7C6AFA"/>
+                <stop offset="1" stop-color="#50C878"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="logo-text">Mouse<br><strong>Commander</strong></span>
+      </div>
+
+      <div class="nav-items">
+        <button class="nav-item active" data-tab="dashboard" id="nav-dashboard">
+          <span class="nav-icon">⚡</span>
+          <span class="nav-label">Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="capture" id="nav-capture">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-label">Capture</span>
+          <span class="nav-badge" id="capture-badge">0</span>
+        </button>
+        <button class="nav-item" data-tab="mappings" id="nav-mappings">
+          <span class="nav-icon">🗺️</span>
+          <span class="nav-label">Mappings</span>
+          <span class="nav-badge" id="mappings-badge">0</span>
+        </button>
+        <button class="nav-item" data-tab="settings" id="nav-settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Settings</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn btn-ghost btn-sm" id="start-tutorial-btn">
+          <span>📖</span> Tutorial
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main-content">
+
+      <!-- ── Dashboard ── -->
+      <section class="tab-panel active" id="tab-dashboard">
+        <div class="panel-header">
+          <h1>Dashboard</h1>
+          <p class="panel-sub">Your Redragon MMO mouse, live.</p>
+        </div>
+
+        <div class="status-row" id="status-row">
+          <div class="status-card" id="card-learn">
+            <div class="status-card-icon">🎧</div>
+            <div class="status-card-body">
+              <div class="status-card-label">Learn Mode</div>
+              <div class="status-card-value" id="status-learn">On</div>
+            </div>
+            <label class="toggle" title="Toggle Learn Mode">
+              <input type="checkbox" id="toggle-learn" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="status-card" id="card-override">
+            <div class="status-card-icon">🚀</div>
+            <div class="status-card-body">
+              <div class="status-card-label">Override Active</div>
+              <div class="status-card-value" id="status-override">Off</div>
+            </div>
+            <label class="toggle" title="Toggle Override">
+              <input type="checkbox" id="toggle-override" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="status-card">
+            <div class="status-card-icon">🔘</div>
+            <div class="status-card-body">
+              <div class="status-card-label">Buttons Seen</div>
+              <div class="status-card-value" id="status-buttons">0</div>
+            </div>
+          </div>
+
+          <div class="status-card">
+            <div class="status-card-icon">🗺️</div>
+            <div class="status-card-body">
+              <div class="status-card-label">Mapped</div>
+              <div class="status-card-value" id="status-mapped">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live feed -->
+        <div class="card" id="live-feed-card">
+          <div class="card-header">
+            <h2>Live Button Feed</h2>
+            <div class="live-dot" id="live-dot"></div>
+          </div>
+          <div class="live-feed" id="live-feed">
+            <div class="feed-empty">Waiting for mouse input…<br>
+              <small>Press any extra button on your Redragon mouse</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Capture ── -->
+      <section class="tab-panel" id="tab-capture">
+        <div class="panel-header">
+          <h1>Capture</h1>
+          <p class="panel-sub">All buttons detected from your mouse. Click one to map it.</p>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" id="reset-captures-btn">↺ Reset</button>
+          <span class="toolbar-hint" id="capture-hint">Press extra mouse buttons to see them here</span>
+        </div>
+
+        <div class="button-grid" id="button-grid">
+          <div class="grid-empty">
+            <div class="grid-empty-icon">🖱️</div>
+            <p>No buttons captured yet</p>
+            <small>Make sure Learn Mode is On, then press your extra mouse buttons</small>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Mappings ── -->
+      <section class="tab-panel" id="tab-mappings">
+        <div class="panel-header">
+          <h1>Mappings</h1>
+          <p class="panel-sub">What each button does when Override is active.</p>
+        </div>
+
+        <div class="mappings-list" id="mappings-list">
+          <div class="grid-empty">
+            <div class="grid-empty-icon">🗺️</div>
+            <p>No mappings yet</p>
+            <small>Head to Capture and click a button to assign an action</small>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Settings ── -->
+      <section class="tab-panel" id="tab-settings">
+        <div class="panel-header">
+          <h1>Settings</h1>
+          <p class="panel-sub">Configure MouseCommander.</p>
+        </div>
+
+        <div class="settings-group">
+          <h3>About your mouse</h3>
+          <div class="info-block">
+            <p>Redragon MMO mice without the Redragon software installed will typically emit their extra buttons as one of:</p>
+            <ul>
+              <li><strong>F13–F24</strong> — most common for profile 1 buttons</li>
+              <li><strong>Mouse Button 4 / 5</strong> — the two thumb buttons</li>
+              <li><strong>Media keys</strong> — volume, play/pause</li>
+            </ul>
+            <p>MouseCommander listens for all of these simultaneously so nothing is missed.</p>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Actions when Override is active</h3>
+          <div class="info-block">
+            <p>When <strong>Override Active</strong> is on, MouseCommander intercepts mapped buttons and executes your configured action instead of whatever would normally happen. Unmapped buttons pass through as normal.</p>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Danger zone</h3>
+          <button class="btn btn-danger" id="clear-all-btn">Clear all mappings</button>
+          <button class="btn btn-ghost btn-sm" id="reset-firstrun-btn" style="margin-left:8px">Re-run tutorial</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ── Mapping modal ── -->
+  <div class="modal-backdrop hidden" id="modal-backdrop">
+    <div class="modal" id="mapping-modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Map Button</h2>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="modal-button-id" />
+
+        <div class="field-group">
+          <label>Button label</label>
+          <input class="input" type="text" id="modal-label" placeholder="e.g. Side Button 1" />
+        </div>
+
+        <div class="field-group">
+          <label>Action type</label>
+          <div class="action-type-grid" id="action-type-grid">
+            <button class="action-chip" data-type="hotkey">⌨️ Hotkey</button>
+            <button class="action-chip" data-type="type_text">✍️ Type Text</button>
+            <button class="action-chip" data-type="open_url">🌐 Open URL</button>
+            <button class="action-chip" data-type="run_command">💻 Run Command</button>
+            <button class="action-chip" data-type="open_file">📂 Open File</button>
+            <button class="action-chip" data-type="media">🎵 Media Key</button>
+          </div>
+        </div>
+
+        <div class="field-group" id="action-value-group">
+          <!-- dynamic based on type -->
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="modal-delete">Delete mapping</button>
+          <div class="modal-footer-right">
+            <button class="btn btn-ghost" id="modal-test">Test</button>
+            <button class="btn btn-primary" id="modal-save">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
