@@ -25,8 +25,14 @@ from queue import Queue, Empty
 
 from pynput import mouse
 from PIL import Image, ImageDraw, ImageTk
-import pystray
-import pyperclip
+try:
+    import pystray  # type: ignore
+except Exception:
+    pystray = None
+try:
+    import pyperclip  # type: ignore
+except Exception:
+    pyperclip = None
 import mss
 
 try:
@@ -122,6 +128,8 @@ def grab_screenshot() -> str:
 
 
 def grab_clipboard() -> str:
+    if not pyperclip:
+        return ""
     try:
         return (pyperclip.paste() or "")[:500]
     except Exception:
@@ -313,7 +321,9 @@ class TripleRightClick:
 
 # ---------- System tray ----------
 
-def build_tray(on_quit, on_show_folder) -> pystray.Icon:
+def build_tray(on_quit, on_show_folder):
+    if not pystray:
+        return None
     img = _paperclip_image(64)
     menu = pystray.Menu(
         pystray.MenuItem("Open data folder", lambda *_: on_show_folder()),
@@ -345,7 +355,8 @@ def main():
             pass
 
     tray = build_tray(on_quit=root.quit, on_show_folder=show_folder)
-    threading.Thread(target=tray.run, daemon=True).start()
+    if tray is not None:
+        threading.Thread(target=tray.run, daemon=True).start()
 
     root.mainloop()
 
