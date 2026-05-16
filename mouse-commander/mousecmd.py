@@ -21,27 +21,44 @@ from datetime import datetime
 
 # ── Dependency check ──────────────────────────────────────────────────────────
 MISSING = []
+HAS_INPUT = True
+HAS_TRAY = True
+
 try:
     from flask import Flask, jsonify, request, Response, send_from_directory
 except ImportError:
     MISSING.append("flask")
+
 try:
     from pynput import mouse, keyboard
     from pynput.keyboard import Key, KeyCode, Controller as KeyController
     from pynput.mouse import Button, Controller as MouseController
-except ImportError:
-    MISSING.append("pynput")
+    # Validate a display is available by doing a lightweight probe
+    import pynput._util
+except Exception:
+    HAS_INPUT = False
+
 try:
     import pystray
     from pystray import MenuItem as item
+    HAS_TRAY = True
+except Exception:
+    HAS_TRAY = False
+
+try:
     from PIL import Image, ImageDraw
+    HAS_PIL = True
 except ImportError:
-    MISSING.append("pystray pillow")
+    HAS_PIL = False
 
 if MISSING:
     print(f"Missing packages: {', '.join(MISSING)}")
     print(f"Run: pip install {' '.join(MISSING)}")
     sys.exit(1)
+
+HEADLESS = not HAS_INPUT
+if HEADLESS:
+    print("[MouseCommander] No display detected — running in headless mode (web UI only).")
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
@@ -95,13 +112,15 @@ def broadcast_event(data: dict):
             event_subscribers.remove(q)
 
 # ── Input capture ─────────────────────────────────────────────────────────────
-EXTRA_MOUSE_BUTTONS = {
-    Button.x1: "mouse_x1",
-    Button.x2: "mouse_x2",
-}
-
-# Track which extra buttons are "extra" (not standard L/M/R)
-STANDARD_BUTTONS = {Button.left, Button.middle, Button.right}
+if HAS_INPUT:
+    EXTRA_MOUSE_BUTTONS = {
+        Button.x1: "mouse_x1",
+        Button.x2: "mouse_x2",
+    }
+    STANDARD_BUTTONS = {Button.left, Button.middle, Button.right}
+else:
+    EXTRA_MOUSE_BUTTONS = {}
+    STANDARD_BUTTONS = set()
 
 # Known Redragon side-button key mappings (varies by model/profile)
 REDRAGON_KEYS = {
@@ -319,23 +338,36 @@ def api_events():
 def api_status():
     return jsonify({
         "running": True,
+        "headless": HEADLESS,
         "learn_mode": config.get("learn_mode"),
         "override_active": config.get("override_active"),
         "buttons_seen": len(captured_buttons),
         "mappings_count": len(config.get("mappings", {})),
     })
 
+@app.route("/api/simulate", methods=["POST"])
+def api_simulate():
+    """Inject a synthetic button press — useful for testing/demo in headless mode."""
+    data = request.json or {}
+    bid = data.get("button_id", "sim_button")
+    source = data.get("source", "simulated")
+    register_button(bid, source, f"sim:{bid}")
+    return jsonify({"ok": True, "button_id": bid})
+
 # ── Tray icon ─────────────────────────────────────────────────────────────────
 def make_tray_icon(active=False):
-    size = 64
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    # Outer circle
-    color = (80, 200, 120) if active else (100, 120, 200)
-    d.ellipse([4, 4, 60, 60], fill=color)
-    # Inner dot
-    d.ellipse([22, 22, 42, 42], fill=(255, 255, 255, 200))
-    return img
+    if not HAS_PIL:
+        return None
+    try:
+        size = 64
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        color = (80, 200, 120) if active else (100, 120, 200)
+        d.ellipse([4, 4, 60, 60], fill=color)
+        d.ellipse([22, 22, 42, 42], fill=(255, 255, 255, 200))
+        return img
+    except Exception:
+        return None
 
 tray_icon = None
 
@@ -368,50 +400,65 @@ def reset_captures(icon=None, item=None):
 
 def build_tray():
     global tray_icon
-    menu = pystray.Menu(
-        item("Open Admin UI", open_ui, default=True),
-        pystray.Menu.SEPARATOR,
-        item(lambda t: f"{'✓ ' if config.get('learn_mode') else ''}Learn Mode", toggle_learn),
-        item(lambda t: f"{'✓ ' if config.get('override_active') else ''}Override Active", toggle_override),
-        pystray.Menu.SEPARATOR,
-        item("Reset Captures", reset_captures),
-        pystray.Menu.SEPARATOR,
-        item("Quit", quit_app),
-    )
-    tray_icon = pystray.Icon("MouseCommander", make_tray_icon(), "MouseCommander", menu)
-    tray_icon.run()
+    if not HAS_TRAY:
+        return
+    try:
+        menu = pystray.Menu(
+            item("Open Admin UI", open_ui, default=True),
+            pystray.Menu.SEPARATOR,
+            item(lambda t: f"{'✓ ' if config.get('learn_mode') else ''}Learn Mode", toggle_learn),
+            item(lambda t: f"{'✓ ' if config.get('override_active') else ''}Override Active", toggle_override),
+            pystray.Menu.SEPARATOR,
+            item("Reset Captures", reset_captures),
+            pystray.Menu.SEPARATOR,
+            item("Quit", quit_app),
+        )
+        icon_img = make_tray_icon()
+        if icon_img:
+            tray_icon = pystray.Icon("MouseCommander", icon_img, "MouseCommander", menu)
+            tray_icon.run()
+    except Exception as e:
+        print(f"[MouseCommander] Tray unavailable: {e}")
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 def start_flask():
     import logging
     log = logging.getLogger("werkzeug")
     log.setLevel(logging.ERROR)
-    app.run(host="127.0.0.1", port=PORT, threaded=True, use_reloader=False)
+    app.run(host="0.0.0.0", port=PORT, threaded=True, use_reloader=False)
 
 def main():
     print(f"[MouseCommander] Starting on http://localhost:{PORT}")
+    if HEADLESS:
+        print("[MouseCommander] Headless mode: mouse/keyboard listeners and system tray disabled.")
+        print("[MouseCommander] On your Windows machine with a display, all features will activate.")
 
     # Flask in background
     flask_thread = threading.Thread(target=start_flask, daemon=True)
     flask_thread.start()
 
-    # Mouse listener
-    mouse_listener = mouse.Listener(on_click=on_mouse_click)
-    mouse_listener.start()
+    if not HEADLESS:
+        # Mouse listener
+        try:
+            mouse_listener = mouse.Listener(on_click=on_mouse_click)
+            mouse_listener.start()
+        except Exception as e:
+            print(f"[MouseCommander] Mouse listener failed: {e}")
 
-    # Keyboard listener
-    kb_listener = keyboard.Listener(on_press=on_key_press)
-    kb_listener.start()
+        # Keyboard listener
+        try:
+            kb_listener = keyboard.Listener(on_press=on_key_press)
+            kb_listener.start()
+        except Exception as e:
+            print(f"[MouseCommander] Keyboard listener failed: {e}")
 
-    # Brief pause then open UI on first run
-    if config.get("first_run"):
-        with config_lock:
-            config["first_run"] = False
-            save_config(config)
-        threading.Timer(1.5, lambda: webbrowser.open(f"http://localhost:{PORT}")).start()
-
-    # Tray (blocking — runs on main thread)
-    build_tray()
+    if not HEADLESS:
+        # Tray blocks the main thread (required by pystray on most platforms)
+        build_tray()
+    else:
+        # Headless: block on Flask thread
+        print(f"[MouseCommander] Web UI ready → http://localhost:{PORT}")
+        flask_thread.join()
 
 if __name__ == "__main__":
     main()

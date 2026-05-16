@@ -131,6 +131,18 @@
           </div>
         </div>
 
+        <!-- Headless notice -->
+        <div class="card headless-notice hidden" id="headless-notice">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:22px">💻</span>
+            <div>
+              <div style="font-weight:600;margin-bottom:2px">Headless mode — no display detected</div>
+              <div style="font-size:13px;color:var(--text-muted)">Mouse/keyboard listeners are off. On your Windows machine they activate automatically. Use the button below to simulate presses for testing.</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="simulate-btn" style="white-space:nowrap;flex-shrink:0">⚡ Simulate press</button>
+          </div>
+        </div>
+
         <!-- Live feed -->
         <div class="card" id="live-feed-card">
           <div class="card-header">

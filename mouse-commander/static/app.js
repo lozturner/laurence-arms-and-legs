@@ -516,11 +516,28 @@ $('tutorial-skip').addEventListener('click', endTutorial);
 
 $('start-tutorial-btn').addEventListener('click', startTutorial);
 
+// ── Headless / simulate ────────────────────────────────────────────────────
+let simulateCounter = 0;
+const simulateNames = ['mouse_x1','mouse_x2','key_f13','key_f14','key_f15','key_f16',
+                       'key_f17','key_f18','key_f19','key_f20','key_f21','key_f22'];
+
+$('simulate-btn')?.addEventListener('click', async () => {
+  const bid = simulateNames[simulateCounter % simulateNames.length];
+  simulateCounter++;
+  await api('/api/simulate', 'POST', { button_id: bid, source: 'simulated' });
+});
+
 // ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   await loadConfig();
   await loadButtons();
   connectSSE();
+
+  // Show headless notice if server is running without a display
+  const status = await api('/api/status');
+  if (status.headless) {
+    $('headless-notice').classList.remove('hidden');
+  }
 
   if (config.first_run !== false) {
     setTimeout(startTutorial, 800);

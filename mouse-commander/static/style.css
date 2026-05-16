@@ -737,6 +737,12 @@ html, body {
   margin-top: 18px;
 }
 
+.headless-notice {
+  border-color: rgba(255,200,87,0.25) !important;
+  background: rgba(255,200,87,0.06) !important;
+  margin-bottom: 20px;
+}
+
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
