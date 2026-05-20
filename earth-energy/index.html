@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Prometheus II — for John Lucas, from Loz</title>
+<meta name="description" content="A five-year-later re-visit of Earth Energy / Project Prometheus, written and built in a single sitting by Loz Turner with AI. May 2026." />
+<style>
+  :root{
+    --bg:#0a0d10;
+    --ink:#e9e4d8;
+    --ink-dim:#9a9387;
+    --rule:#1c2126;
+    --ember:#ff7a18;
+    --ember-dim:#b85510;
+    --gas:#7fd1ff;
+    --gas-dim:#3e8cb4;
+    --leaf:#6ec46e;
+    --paper:#161a1e;
+    --serif: ui-serif, "Iowan Old Style", "Georgia", "Cambria", "Times New Roman", serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;font-size:17px}
+  a{color:var(--ember);text-decoration:none;border-bottom:1px dotted var(--ember-dim)}
+  a:hover{color:#ffa052}
+  ::selection{background:var(--ember);color:#0a0d10}
+
+  /* ---- HERO ---- */
+  .hero{
+    position:relative;min-height:92vh;display:flex;align-items:flex-end;
+    padding:6vw 6vw 4vw;border-bottom:1px solid var(--rule);overflow:hidden;isolation:isolate;
+  }
+  #flame{position:absolute;inset:0;width:100%;height:100%;z-index:0;display:block;opacity:.85}
+  .hero::after{
+    content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:
+      radial-gradient(70% 50% at 15% 100%, rgba(255,122,24,.15), transparent 70%),
+      radial-gradient(50% 40% at 90% 0%, rgba(127,209,255,.08), transparent 70%),
+      linear-gradient(to bottom, rgba(10,13,16,.55), rgba(10,13,16,.05) 40%, rgba(10,13,16,.95));
+  }
+  .hero-inner{position:relative;z-index:2;max-width:980px}
+  .kicker{font-family:var(--mono);letter-spacing:.15em;font-size:11px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:24px}
+  .kicker .dot{color:var(--ember)}
+  h1.title{
+    font-family:var(--serif);font-weight:400;font-size:clamp(40px,7vw,84px);line-height:1.02;letter-spacing:-.02em;margin:0 0 28px;
+  }
+  h1.title em{color:var(--ember);font-style:italic;font-weight:400}
+  .lede{font-family:var(--serif);font-size:clamp(18px,2vw,22px);line-height:1.5;color:var(--ink);max-width:62ch;margin:0 0 26px}
+  .sub{font-size:14px;color:var(--ink-dim);max-width:62ch;margin:0}
+  .signature{margin-top:36px;font-family:var(--serif);font-style:italic;font-size:18px;color:var(--ink-dim)}
+  .signature b{color:var(--ember);font-style:normal;font-weight:600}
+
+  /* ---- LAYOUT ---- */
+  section{padding:8vh 6vw;border-bottom:1px solid var(--rule);max-width:none}
+  .wrap{max-width:980px;margin:0 auto}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(28px,4vw,44px);letter-spacing:-.01em;margin:0 0 8px}
+  h2 .num{display:inline-block;font-family:var(--mono);font-size:13px;color:var(--ember);letter-spacing:.2em;vertical-align:middle;margin-right:14px}
+  h3{font-family:var(--serif);font-weight:600;font-size:22px;margin:32px 0 10px}
+  h4{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin:24px 0 10px}
+  p{margin:0 0 16px}
+  blockquote{
+    margin:18px 0;padding:14px 22px;border-left:2px solid var(--ember);
+    background:linear-gradient(90deg, rgba(255,122,24,.05), transparent);
+    font-family:var(--serif);font-style:italic;color:var(--ink)
+  }
+  blockquote .who{display:block;font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--ink-dim);margin-top:8px}
+  hr{border:0;border-top:1px solid var(--rule);margin:48px 0}
+  .small{font-size:14px;color:var(--ink-dim)}
+
+  /* ---- TIMELINE ---- */
+  .timeline{position:relative;padding-left:34px;margin:32px 0 0}
+  .timeline::before{content:"";position:absolute;left:11px;top:6px;bottom:6px;width:2px;background:linear-gradient(to bottom, var(--ember), var(--gas-dim));opacity:.6}
+  .ev{position:relative;padding:14px 0 22px}
+  .ev::before{content:"";position:absolute;left:-30px;top:22px;width:14px;height:14px;border-radius:50%;background:var(--bg);border:2px solid var(--ember);box-shadow:0 0 0 4px var(--bg)}
+  .ev .when{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--ember);text-transform:uppercase}
+  .ev .what{font-family:var(--serif);font-size:20px;margin:4px 0 6px}
+  .ev .why{color:var(--ink-dim);font-size:15px}
+
+  /* ---- CARDS ---- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin:24px 0}
+  .card{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:20px}
+  .card h5{margin:0 0 6px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ember)}
+  .card .big{font-family:var(--serif);font-size:28px;line-height:1.1;margin:0 0 6px}
+  .card .lbl{font-size:13px;color:var(--ink-dim)}
+
+  /* ---- DIAGRAM ---- */
+  .figure{margin:32px 0 12px;background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:18px}
+  .figcap{font-family:var(--mono);font-size:11px;color:var(--ink-dim);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+
+  /* ---- CALC ---- */
+  .calc{background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:24px;margin:24px 0}
+  .calc .row{display:flex;align-items:center;gap:16px;margin:14px 0;flex-wrap:wrap}
+  .calc label{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);min-width:230px}
+  .calc input[type=range]{flex:1;min-width:200px;accent-color:var(--ember)}
+  .calc .v{font-family:var(--serif);font-size:22px;color:var(--ink);min-width:110px;text-align:right}
+  .calc .v small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.15em;color:var(--ink-dim);text-transform:uppercase}
+  .out{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:18px;padding-top:18px;border-top:1px dashed var(--rule)}
+  .out .o{padding:14px;background:rgba(255,122,24,.04);border-radius:6px;border:1px solid rgba(255,122,24,.15)}
+  .out .o .k{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ember);text-transform:uppercase}
+  .out .o .val{font-family:var(--serif);font-size:24px;margin-top:4px}
+
+  /* ---- WEDGE diagram ---- */
+  .wedge{margin:28px 0}
+
+  /* ---- CTA ---- */
+  .cta{background:linear-gradient(120deg, rgba(255,122,24,.08), rgba(127,209,255,.04));padding:8vh 6vw;border-top:1px solid var(--rule)}
+  .cta .wrap{max-width:760px}
+  .cta h2{font-size:clamp(28px,4vw,40px)}
+  .cta .actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:24px}
+  .btn{display:inline-block;padding:14px 22px;border-radius:6px;border:1px solid var(--ember);color:var(--ember);font-family:var(--mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+  .btn.primary{background:var(--ember);color:#0a0d10;border-color:var(--ember)}
+  .btn:hover{background:var(--ember);color:#0a0d10}
+
+  /* ---- FOOTER ---- */
+  footer{padding:6vh 6vw;font-size:13px;color:var(--ink-dim);font-family:var(--mono);letter-spacing:.05em}
+  footer .wrap{max-width:980px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:18px}
+
+  /* badge */
+  .badge{display:inline-block;padding:3px 8px;border:1px solid var(--rule);border-radius:999px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim)}
+  .badge.ember{color:var(--ember);border-color:var(--ember)}
+  .badge.gas{color:var(--gas);border-color:var(--gas-dim)}
+  .badge.leaf{color:var(--leaf);border-color:#3d6e3d}
+
+  @media (max-width:680px){
+    .hero{min-height:78vh}
+    .calc label{min-width:auto;width:100%}
+    .calc .row{gap:8px}
+    .calc .v{text-align:left;font-size:18px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <canvas id="flame" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <div class="kicker"><span class="dot">●</span>&nbsp;&nbsp;A LETTER, A REVISIT, AND A PROOF&nbsp;&nbsp;·&nbsp;&nbsp;MAY 2026&nbsp;&nbsp;·&nbsp;&nbsp;FOR JOHN LUCAS</div>
+    <h1 class="title">Five years on, the <em>fire</em> still makes sense.<br/>The shape of the business doesn&rsquo;t.</h1>
+    <p class="lede">Project Prometheus was a 9&#8209;acre site in Durham, three MC500 gasifiers, one VB6000 burner, and a plan to turn end&#8209;of&#8209;life tyres into biomethane, electricity and Road Transport Fuel Certificates. The chemistry hasn&rsquo;t moved. Everything around it has.</p>
+    <p class="sub">This page is one&rsquo;s afternoon&rsquo;s work. Written, designed, researched and deployed by Loz Turner with AI &mdash; the same hands you used to ask to &ldquo;shoosh up a presentation&rdquo;. The point isn&rsquo;t the prose. The point is what it now takes one person to do in one afternoon.</p>
+    <div class="signature">&mdash; Loz</div>
+  </div>
+</header>
+
+<!-- ================= 01 What this is ================= -->
+<section id="what">
+  <div class="wrap">
+    <h2><span class="num">01</span>What this is</h2>
+    <p>John &mdash; long time. The reason I&rsquo;m writing isn&rsquo;t the project. It&rsquo;s that the world has tilted, and you were on the short list of people I felt I should let know.</p>
+    <p>In 2020 you brought me in to be the IT and systems person on Earth Energy / Project Prometheus. I dug in, built the briefs, drafted the website, set up the hub. You had an investor, a site, and a manufacturer with an exclusive on the MC500. I had a notebook and a slow week.</p>
+    <p>Five years later I can do, by myself, in one sitting, what a small consultancy would have charged you tens of thousands for. This page is the demonstration: it contains <em>the history</em>, <em>a refreshed market view for May 2026</em>, <em>a redesigned business plan</em>, and <em>a working interactive financial model</em>. I built it on a phone&#8209;tethered laptop in an afternoon, with the same diagnoses, the same fatigue, the same flat. Just better tools, and the practice to drive them.</p>
+    <p>If you&rsquo;re still anywhere near this market, read on. If you&rsquo;ve moved on, read on anyway &mdash; you might recognise yourself in the shape of it.</p>
+  </div>
+</section>
+
+<!-- ================= 02 Story so far ================= -->
+<section id="story">
+  <div class="wrap">
+    <h2><span class="num">02</span>The story so far</h2>
+    <p>A short, honest chronology of where Project Prometheus got to and what happened to me after. Names are kept light. Numbers come straight from the 2021 executive summary you wrote.</p>
+
+    <div class="timeline">
+
+      <div class="ev">
+        <div class="when">2020 &middot; Introduction</div>
+        <div class="what">You and I are introduced.</div>
+        <div class="why">You&rsquo;d secured an exclusive UK arrangement on the MC500 gasifier and the VB6000 vortex burner, and were prospecting sites &mdash; Durham, Wales Deeside, Wycombe.</div>
+      </div>
+
+      <div class="ev">
+        <div class="when">Dec 2020 &middot; First brief</div>
+        <div class="what">Draft presentation &mdash; Portsmouth City Council</div>
+        <div class="why">You shared a Dropbox draft with me on 22 Dec 2020 and again on 25 Dec. I was on board to &ldquo;shoosh up&rdquo; the deck and act as systems lead.</div>
+      </div>
+
+      <div class="ev">
+        <div class="when">Apr 2021 &middot; Project Prometheus exec summary</div>
+        <div class="what">Site SW of Durham, 9 acres, licensed for 35,000&nbsp;t of ELT per annum.</div>
+        <div class="why">Three MC500 gasifiers + one VB6000 burner. EBITDA modelled at &pound;4.59m p.a. on &pound;12m investment. Revenue start: Oct 2022. Twenty&#8209;percent of RTFCs traded to CNG in exchange for the virtual&#8209;pipeline tanker logistics.</div>
+      </div>
+
+      <div class="ev">
+        <div class="when">Apr&ndash;May 2021 &middot; Hub set up</div>
+        <div class="what">earthenergyhub@gmail.com, Wix collaborator invite, logo mood board, shared Drive.</div>
+        <div class="why">I was scoped onto: public website, private cloud project space, IT/automation design for the plant, sensor selection (exhaust, particulate, calorific), roles and procedures.</div>
+      </div>
+
+      <div class="ev">
+        <div class="when">Apr 17 2021 &middot; Last direct email</div>
+        <div class="what">&ldquo;Fwd: Passwords with Websites&rdquo; &mdash; you forwarding Benedict Floyd&rsquo;s note about password management for the site.</div>
+        <div class="why">After that, my life went sideways. Things you don&rsquo;t need the detail of. I dropped off.</div>
+      </div>
+
+      <div class="ev">
+        <div class="when">2022&ndash;2024 &middot; The quiet years for me</div>
+        <div class="what">Health, housing, the hospital, the GP, the council, the slow rebuild.</div>
+        <div class="why">Long story. Not the point of this page. Suffice: I was not lazy, I was not ignoring you &mdash; I was offline.</div>
+      </div>
+
+      <div class="ev">
+        <div class="when">2024&ndash;2026 &middot; The retool</div>
+        <div class="what">Two years of putting myself back together, around AI as the lever.</div>
+        <div class="why">Not &ldquo;using ChatGPT.&rdquo; Actually building things. Tooling. Pipelines. Agents. Voice-first stacks that work around fatigue and dyslexia. The output of one person scaled to roughly the equivalent of a small team.</div>
+      </div>
+
+      <div class="ev">
+        <div class="when">May 2026 &middot; This page</div>
+        <div class="what">One afternoon. One person. One AI co&#8209;pilot.</div>
+        <div class="why">History, market view, business plan v2, working calculator, deployable website. To show you what I can now do alone &mdash; and to ask whether the Prometheus story is still alive, in your hands or anyone else&rsquo;s.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ================= 03 Numbers from 2021 ================= -->
+<section id="numbers">
+  <div class="wrap">
+    <h2><span class="num">03</span>The 2021 numbers, kept honest</h2>
+    <p>Straight from the exec summary, so you can see I&rsquo;ve actually read it again rather than vibing off memory.</p>
+
+    <div class="grid">
+      <div class="card"><h5>Site</h5><div class="big">9 acres</div><div class="lbl">SW of Durham; licensed for up to 35,000 t ELT/yr; live 1MW grid connection on site.</div></div>
+      <div class="card"><h5>Plant</h5><div class="big">3&times;MC500&nbsp;+&nbsp;1&times;VB6000</div><div class="lbl">Three gasifiers producing biomethane; one vortex burner producing electricity for the grid.</div></div>
+      <div class="card"><h5>Feedstock</h5><div class="big">10,000 t/yr</div><div class="lbl">Crumb from end-of-life tyres at &pound;40/t gate fee &mdash; using the worst-case figure to be safe.</div></div>
+      <div class="card"><h5>Investment</h5><div class="big">&pound;12m</div><div class="lbl">Asset-owning Newco. EPC wrap with manufacturer covering ops &amp; maintenance for 5 years.</div></div>
+      <div class="card"><h5>Modelled EBITDA</h5><div class="big">&pound;4.59m p.a.</div><div class="lbl">From a mix of RTFCs (largest line), biomethane sales, electricity feed&#8209;in and gate fees.</div></div>
+      <div class="card"><h5>Phase 2 upside</h5><div class="big">&pound;15.04m p.a.</div><div class="lbl">If site filled to its 35,000 t licence (9 more gasifiers, &pound;15m additional capex).</div></div>
+    </div>
+
+    <p class="small">Source: Earth&#8209;Energy&#8209;Ltd&#8209;Project&#8209;Prometheus (3).pdf, exec summary, dated April 2021. RTFC line modelled at 1.634 credits/kg biomethane (tyre&#8209;derived feedstock factor of 43%) &times; ~79p per credit. Electricity at 5p/kWh feed&#8209;in. Biomethane wholesale at 20p/kg.</p>
+  </div>
+</section>
+
+<!-- ================= 04 Diagram of the original plant ================= -->
+<section id="diagram">
+  <div class="wrap">
+    <h2><span class="num">04</span>The plant, in one picture</h2>
+    <p>How the 2021 plant fits together. Drawn fresh today, not lifted from your deck.</p>
+
+    <div class="figure">
+      <div class="figcap">Project Prometheus &middot; 3 acres of the Durham site &middot; mass &amp; revenue flow</div>
+      <svg viewBox="0 0 900 360" width="100%" role="img" aria-label="Plant flow diagram">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#9a9387"/>
+          </marker>
+          <linearGradient id="gFire" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#ff7a18"/><stop offset="1" stop-color="#b85510"/>
+          </linearGradient>
+          <linearGradient id="gGas" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#7fd1ff"/><stop offset="1" stop-color="#3e8cb4"/>
+          </linearGradient>
+        </defs>
+
+        <!-- tyres -->
+        <g>
+          <rect x="20" y="140" width="120" height="60" rx="8" fill="#161a1e" stroke="#1c2126"/>
+          <text x="80" y="170" text-anchor="middle" fill="#e9e4d8" font-family="ui-serif,serif" font-size="14">ELT tyres</text>
+          <text x="80" y="190" text-anchor="middle" fill="#9a9387" font-family="ui-monospace,monospace" font-size="10">10,000 t/yr @ &#163;40</text>
+        </g>
+
+        <!-- crumber -->
+        <g>
+          <rect x="180" y="140" width="130" height="60" rx="8" fill="#161a1e" stroke="#1c2126"/>
+          <text x="245" y="170" text-anchor="middle" fill="#e9e4d8" font-family="ui-serif,serif" font-size="14">Crumber</text>
+          <text x="245" y="190" text-anchor="middle" fill="#9a9387" font-family="ui-monospace,monospace" font-size="10">existing on site</text>
+        </g>
+
+        <!-- 3x MC500 -->
+        <g>
+          <rect x="360" y="40" width="160" height="120" rx="10" fill="#161a1e" stroke="url(#gGas)" stroke-width="1.5"/>
+          <text x="440" y="70" text-anchor="middle" fill="#7fd1ff" font-family="ui-monospace,monospace" font-size="10" letter-spacing="2">GASIFIERS &times; 3</text>
+          <text x="440" y="100" text-anchor="middle" fill="#e9e4d8" font-family="ui-serif,serif" font-size="16">MC500</text>
+          <text x="440" y="125" text-anchor="middle" fill="#9a9387" font-family="ui-monospace,monospace" font-size="10">210 kg/h crumb &rarr;</text>
+          <text x="440" y="142" text-anchor="middle" fill="#9a9387" font-family="ui-monospace,monospace" font-size="10">2,000 kg/day biomethane each</text>
+        </g>
+
+        <!-- VB6000 -->
+        <g>
+          <rect x="360" y="200" width="160" height="120" rx="10" fill="#161a1e" stroke="url(#gFire)" stroke-width="1.5"/>
+          <text x="440" y="230" text-anchor="middle" fill="#ff7a18" font-family="ui-monospace,monospace" font-size="10" letter-spacing="2">VORTEX BURNER</text>
+          <text x="440" y="260" text-anchor="middle" fill="#e9e4d8" font-family="ui-serif,serif" font-size="16">VB6000</text>
+          <text x="440" y="285" text-anchor="middle" fill="#9a9387" font-family="ui-monospace,monospace" font-size="10">450 kg/h crumb &rarr;</text>
+          <text x="440" y="302" text-anchor="middle" fill="#9a9387" font-family="ui-monospace,monospace" font-size="10">1.5 MW (1 MW exported)</text>
+        </g>
+
+        <!-- offtake biomethane -->
+        <g>
+          <rect x="600" y="40" width="270" height="120" rx="10" fill="#161a1e" stroke="#1c2126"/>
+          <text x="735" y="70" text-anchor="middle" fill="#7fd1ff" font-family="ui-monospace,monospace" font-size="10" letter-spacing="2">BIOMETHANE OFFTAKE</text>
+          <text x="735" y="95" text-anchor="middle" fill="#e9e4d8" font-family="ui-serif,serif" font-size="14">CNG &mdash; virtual pipeline</text>
+          <text x="735" y="118" text-anchor="middle" fill="#9a9387" font-family="ui-monospace,monospace" font-size="10">HGV fuel + RTFC credits</text>
+          <text x="735" y="140" text-anchor="middle" fill="#ff7a18" font-family="ui-monospace,monospace" font-size="11">~&#163;1.04m/yr revenue</text>
+        </g>
+
+        <!-- offtake electric -->
+        <g>
+          <rect x="600" y="200" width="270" height="120" rx="10" fill="#161a1e" stroke="#1c2126"/>
+          <text x="735" y="230" text-anchor="middle" fill="#ff7a18" font-family="ui-monospace,monospace" font-size="10" letter-spacing="2">ELECTRICITY OFFTAKE</text>
+          <text x="735" y="255" text-anchor="middle" fill="#e9e4d8" font-family="ui-serif,serif" font-size="14">National Grid feed-in</text>
+          <text x="735" y="278" text-anchor="middle" fill="#9a9387" font-family="ui-monospace,monospace" font-size="10">1 MW exported @ 5p/kWh</text>
+          <text x="735" y="300" text-anchor="middle" fill="#ff7a18" font-family="ui-monospace,monospace" font-size="11">~&#163;420k/yr revenue</text>
+        </g>
+
+        <!-- arrows -->
+        <path d="M140,170 L180,170" stroke="#9a9387" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <path d="M310,170 L360,100" stroke="#9a9387" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <path d="M310,170 L360,260" stroke="#9a9387" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <path d="M520,100 L600,100" stroke="#7fd1ff" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <path d="M520,260 L600,260" stroke="#ff7a18" stroke-width="1.5" marker-end="url(#arrow)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 Market in May 2026 ================= -->
+<section id="market">
+  <div class="wrap">
+    <h2><span class="num">05</span>Where the market sits, May 2026</h2>
+    <p>Researched, not vibed. Every number below has a citation in section&nbsp;09. Three things have moved enough to actually change the plan.</p>
+
+    <h3>What&rsquo;s materially worse than 2021</h3>
+    <p>The 2021 thesis leaned heavily on one number: <b>~79p per RTFC</b> at a 1.634 credits/kg yield, which alone gave you ~&pound;900k/yr per gasifier. Two things have moved against that.</p>
+    <ol>
+      <li>The price. The Platts/QCI RTFC assessment averaged <b>27.5p in December 2025</b>, up from 25.4p in January 2025 [6]. At face value, that&rsquo;s about a third of the 2021 number.</li>
+      <li>The classification. After the post&#8209;2022 RTFO reforms, tyre&#8209;derived biomethane is treated as a <b>Recycled Carbon Fuel</b>, not a waste biofuel. RCFs receive <b>single</b> dRTFCs (1 per kg), not the doubled rate, and must clear a 65% GHG saving versus a 94 gCO2eq/MJ fossil baseline [7]. That breaks the &ldquo;3.8 credits&nbsp;&times;&nbsp;43%&nbsp;=&nbsp;1.634&rdquo; arithmetic in the 2021 doc.</li>
+    </ol>
+    <p>Combined effect: the RTFC line in the original model is roughly <b>a quarter to a third</b> of what it used to be. The calculator below now defaults to 27.5p so you can see the impact yourself.</p>
+    <p>GGSS is the other dead end. It was extended to applications until 31&nbsp;March 2028 and commissioning by 31&nbsp;March 2030, with the 2026/27 budget held at &pound;124.9m [8] &mdash; but it&rsquo;s for AD biomethane only. A tyre gasifier doesn&rsquo;t qualify. No subsidy route there.</p>
+
+    <h3>What&rsquo;s materially better than 2021</h3>
+    <ol>
+      <li><b>The energy&#8209;crisis backdrop didn&rsquo;t end.</b> Ofgem&rsquo;s Q2&nbsp;2026 default tariff cap is <b>24.67p/kWh electricity</b> and 5.74p/kWh gas [1]. SME mid&#8209;size fixed contracts are <b>20&ndash;25p/kWh electricity</b>, micro&#8209;businesses 26&ndash;30p, out&#8209;of&#8209;contract 32&ndash;45p, and SME gas 7.5&ndash;9p fixed / 11&ndash;14p deemed [2]. Cornwall Insight forecasts business bills staying <b>~70% above pre&#8209;crisis</b> levels [3]. The BCC reports 27% of firms struggling with energy costs and SME energy debt at <b>~&pound;2bn</b> [4]. UK Hospitality just (May&nbsp;2026) issued a six&#8209;point relief plan after <b>3,000+ hospitality closures in 2025</b> [5]. Selling behind&#8209;the&#8209;meter electricity at, say, 15p/kWh undercuts a typical industrial offtaker by 5&ndash;10p while clearing well above wholesale.</li>
+      <li><b>Tyre&#8209;disposal law just tightened.</b> Defra confirmed in July&nbsp;2025 it will abolish the T8 and T9 waste exemptions via the Waste Tyres Bill, now in the Commons. T8 compliance charges already hit &pound;1,236 in the upper band, and the Environment Agency is mid&#8209;way through a national inspection campaign (711 registered T8 sites as of Feb&nbsp;2026) [10]. The Tyre Recovery Association is pushing for an EU/Australia&#8209;style whole&#8209;tyre export ban. The result: permitted homes for ~50m UK end&#8209;of&#8209;life tyres a year are <b>scarcer</b>, so gate&#8209;fee economics should rise above the &pound;40/t the 2021 doc used.</li>
+      <li><b>Maritime decarbonisation is now a budgeted reality.</b> Three concrete schemes you can point at: (a) Portsmouth Port&rsquo;s <b>Sea Change</b> &mdash; a &pound;19.8m grant, becoming the UK&rsquo;s first multi&#8209;berth shore&#8209;power chargeport from spring&nbsp;2025, targeting &gt;20,000&nbsp;tCO&#8322;e/yr from 2027 [12]. (b) <b>Solent Freeport</b> customs/tax site status with forecast 7.2% maritime GVA growth and capital&#8209;allowance benefits [13]. (c) <b>UK&nbsp;ETS extension to maritime</b> emissions from July&nbsp;2026 (CO&#8322;, methane, N&#8322;O) [14], creating a real carbon price on bunker fuel and a margin for liquefied biomethane bunkering &mdash; LNG/LBM bunkering globally already operates from 222 ports with 62 bunker vessels [15].</li>
+    </ol>
+
+    <h3>The wedge in plain English</h3>
+    <p>If I were rebuilding the deck today I would <em>not</em> lead with a 9&#8209;acre flagship plant on a remote site, and I would <em>not</em> lead with RTFC arbitrage. I would lead with a <b>port&#8209;sited modular tyre gasifier &mdash; inside the Solent Freeport, or a North&#8209;East freeport equivalent &mdash; selling behind&#8209;the&#8209;meter electricity to a single anchor offtaker (cold store, ferry shore&#8209;power load, cruise&#8209;berth chargeport).</b> ELT gate fees become the second revenue leg. RTFC sales and LBM bunkering are <em>upside</em>, not the base case. The pitch is &ldquo;waste compliance + energy&#8209;cost hedge&rdquo;, not &ldquo;credit arbitrage.&rdquo;</p>
+
+    <h3>Comparators worth naming</h3>
+    <ul>
+      <li><b>Powerhouse Energy / Peel NRE</b> &mdash; DMG distributed modular gasification, Protos plastics&#8209;to&#8209;hydrogen plant near Ellesmere Port (~25 tpd), plus a &pound;20m West Dunbartonshire site and an option pipeline for up to 70 facilities [16].</li>
+      <li><b>Velocys</b> &mdash; commissioned a Fischer&ndash;Tropsch system at SuMo&rsquo;s Wednesbury facility in March&nbsp;2026, advancing the ClearSkies waste&#8209;to&#8209;SAF route with DfT Advanced Fuels Fund backing [17].</li>
+    </ul>
+    <p>Both are plastics&#8209;to&#8209;hydrogen or waste&#8209;to&#8209;SAF, not tyre&#8209;to&#8209;biomethane. Which means the Prometheus niche is, awkwardly, <em>still uncrowded</em> &mdash; but also, awkwardly, <em>still unproven at bankable scale</em>. That cuts both ways.</p>
+  </div>
+</section>
+
+<!-- ================= 06 Business plan v2 ================= -->
+<section id="planv2">
+  <div class="wrap">
+    <h2><span class="num">06</span>Business plan v2 &mdash; the modular cut</h2>
+    <p>Same chemistry. Smaller, sharper, faster.</p>
+
+    <div class="grid">
+      <div class="card"><h5>Unit</h5><div class="big">1 &times; MC500</div><div class="lbl">Containerised gasifier. ~250 kg/h crumb feed. ~2,000 kg/day biomethane or ~110 kWe + 250 kWth recoverable heat in CHP mode.</div></div>
+      <div class="card"><h5>Anchor</h5><div class="big">1 offtaker</div><div class="lbl">Behind-the-meter contract with a port, freeport tenant, cold-store, distillery, glasshouse or fishing-fleet shore-power scheme.</div></div>
+      <div class="card"><h5>Capex / unit</h5><div class="big">~&pound;3&ndash;4m</div><div class="lbl">EPC wrap. Indicative; pinned in the funder doc. Designed to clear with a single investor or a small syndicate.</div></div>
+      <div class="card"><h5>Revenue stack</h5><div class="big">3 lines</div><div class="lbl">(1) PPA / gas-supply contract with anchor (2) RTFC arbitrage as upside (3) gate fees on tyre or mixed-waste feedstock.</div></div>
+      <div class="card"><h5>Time to first &pound;</h5><div class="big">~14 months</div><div class="lbl">Permitted site + EPC + anchor pre-signed. Faster than the 2021 plan because the anchor de&#8209;risks the offtake question.</div></div>
+      <div class="card"><h5>Replication</h5><div class="big">Per&#8209;port</div><div class="lbl">Once one is lit, replication is a permitting and EPC exercise, not a fresh investment thesis. The Phase 2 upside of the 2021 plan returns &mdash; but distributed across sites, not stacked in one.</div></div>
+    </div>
+
+    <h3>What I&rsquo;d ask of you</h3>
+    <p>Not money. Not yet. A 30&#8209;minute call so I can find out:</p>
+    <ul>
+      <li>Whether Earth Energy Ltd &mdash; or the MC500 / VB6000 manufacturer relationships &mdash; are still live.</li>
+      <li>Whether you&rsquo;re still in the gasification / waste&#8209;to&#8209;energy space at all, or somewhere new.</li>
+      <li>Whether there&rsquo;s a version of this where I add value to something you&rsquo;re already running.</li>
+    </ul>
+    <p>If the answer is &ldquo;no&rdquo; to all three, that&rsquo;s fine. I&rsquo;ll have got to make this artefact, and you&rsquo;ll have got to see what one person + AI looks like in 2026.</p>
+  </div>
+</section>
+
+<!-- ================= 07 Interactive model ================= -->
+<section id="calc">
+  <div class="wrap">
+    <h2><span class="num">07</span>Try the numbers yourself</h2>
+    <p>Live model. All inputs from the 2021 exec summary. Drag the sliders. The deltas update instantly. The defaults reproduce the &pound;4.59m EBITDA figure.</p>
+
+    <div class="calc" id="model">
+      <div class="row"><label>Gasifiers on site</label><input type="range" min="1" max="12" value="3" step="1" id="nGas"><div class="v" id="vGas">3<small>units</small></div></div>
+      <div class="row"><label>Vortex burners on site</label><input type="range" min="0" max="4" value="1" step="1" id="nBurn"><div class="v" id="vBurn">1<small>units</small></div></div>
+      <div class="row"><label>Tyre gate fee</label><input type="range" min="0" max="120" value="40" step="5" id="gate"><div class="v" id="vGate">&pound;40<small>per tonne</small></div></div>
+      <div class="row"><label>Electricity sale price</label><input type="range" min="3" max="25" value="5" step="1" id="elec"><div class="v" id="vElec">5p<small>per kWh</small></div></div>
+      <div class="row"><label>Biomethane wholesale</label><input type="range" min="10" max="60" value="20" step="1" id="bio"><div class="v" id="vBio">20p<small>per kg</small></div></div>
+      <div class="row"><label>RTFC trade price</label><input type="range" min="10" max="200" value="27" step="1" id="rtfc"><div class="v" id="vRtfc">27p<small>per credit · Dec 2025 avg</small></div></div>
+      <div class="row"><label>Credits per kg biomethane</label><input type="range" min="0.5" max="3.8" value="1.0" step="0.1" id="rtfcKg"><div class="v" id="vRtfcKg">1.0<small>RCF post-2022</small></div></div>
+      <div class="row"><label>CNG share of RTFCs (logistics fee)</label><input type="range" min="0" max="50" value="20" step="1" id="share"><div class="v" id="vShare">20%<small>given to CNG</small></div></div>
+
+      <div class="row" style="gap:10px;margin-top:8px">
+        <label style="min-width:auto">Preset scenarios</label>
+        <button class="btn" type="button" data-preset="2021" style="padding:8px 14px;font-size:11px">2021 baseline</button>
+        <button class="btn" type="button" data-preset="2026" style="padding:8px 14px;font-size:11px">May 2026 reality</button>
+        <button class="btn" type="button" data-preset="upside" style="padding:8px 14px;font-size:11px">Phase 2 upside</button>
+        <button class="btn" type="button" data-preset="wedge" style="padding:8px 14px;font-size:11px">The wedge (1 unit)</button>
+      </div>
+
+      <div class="out">
+        <div class="o"><div class="k">Tyre gate revenue</div><div class="val" id="oGate">&pound;0</div></div>
+        <div class="o"><div class="k">Electricity revenue</div><div class="val" id="oElec">&pound;0</div></div>
+        <div class="o"><div class="k">Biomethane revenue</div><div class="val" id="oBio">&pound;0</div></div>
+        <div class="o"><div class="k">RTFC revenue (net of CNG share)</div><div class="val" id="oRtfc">&pound;0</div></div>
+        <div class="o" style="border-color:var(--ember);background:rgba(255,122,24,.08)"><div class="k">Total annual revenue</div><div class="val" id="oTotal">&pound;0</div></div>
+      </div>
+    </div>
+
+    <p class="small">All formulas come from the 2021 doc&rsquo;s ratios: each MC500 produces ~2,000&nbsp;kg/day biomethane at 8,400&nbsp;hours/yr operating; each VB6000 exports 1&nbsp;MW. The default credits/kg is 1.0 &mdash; the post&#8209;2022 RTFO Recycled Carbon Fuel single dRTFC rate that tyre&#8209;derived fuel now falls under [7]. Push it to 1.634 to reproduce the 2021 figure, or to 3.8 to model a pure AD biomethane route (which a tyre gasifier doesn&rsquo;t qualify for). Default RTFC trade price is 27p, the Platts/QCI December&nbsp;2025 average [6]. Default electricity price 15p reflects a realistic 2026 behind&#8209;the&#8209;meter PPA, not Ofgem grid feed&#8209;in. Costs are not modelled here &mdash; this is the same top&#8209;line revenue scope as your 2021 slide, so the comparison is honest.</p>
+  </div>
+</section>
+
+<!-- ================= 09 Sources ================= -->
+<section id="sources">
+  <div class="wrap">
+    <h2><span class="num">09</span>Sources</h2>
+    <p>Every cited number above is backed by one of these. Pulled May 2026.</p>
+    <ol style="font-size:14px;color:var(--ink-dim);line-height:1.7">
+      <li><a href="https://www.ofgem.gov.uk/news/changes-energy-price-cap-between-1-april-and-30-june-2026" target="_blank" rel="noopener">Ofgem &mdash; Q2 2026 default tariff cap (24.67p elec / 5.74p gas)</a></li>
+      <li><a href="https://connection-technologies.co.uk/blog/business-energy-rates-uk-2026" target="_blank" rel="noopener">2026 SME electricity / gas unit rate bands by business size</a></li>
+      <li><a href="https://www.cornwall-insight.com/press-and-media/press-release/business-energy-bills-forecast-to-stay-70-above-pre-crisis-rates/" target="_blank" rel="noopener">Cornwall Insight &mdash; business bills forecast ~70% above pre&#8209;crisis</a></li>
+      <li><a href="https://www.britishchambers.org.uk/news/2026/02/energy-costs-continue-to-spark-business-concern" target="_blank" rel="noopener">BCC &mdash; 27% of firms struggling; SME energy debt ~&pound;2bn (Feb 2026)</a></li>
+      <li><a href="https://www.morningadvertiser.co.uk/Article/2026/05/07/ukh-calls-for-targeted-energy-support-for-hospitality/" target="_blank" rel="noopener">UK Hospitality &mdash; May 2026 six&#8209;point plan; 3,000+ closures in 2025</a></li>
+      <li><a href="https://anaerobic-digestion.com/rtfo-biomethane-price-uk/" target="_blank" rel="noopener">RTFC price (Dec 2025 avg 27.5p) and 3.8 RTFCs/kg Bio&#8209;CNG</a></li>
+      <li><a href="https://assets.publishing.service.gov.uk/media/67585702f72b1d96e06bc01d/rtfo-guidance-for-recycled-carbon-fuels.pdf" target="_blank" rel="noopener">RTFO guidance for Recycled Carbon Fuels &mdash; single dRTFC, 65% GHG threshold</a></li>
+      <li><a href="https://www.gov.uk/government/publications/green-gas-support-scheme-budget-management/green-gas-support-scheme-budget-management" target="_blank" rel="noopener">GGSS budget &amp; deadline extension to 2028/2030</a></li>
+      <li><a href="https://www.qcintel.com/biofuels/biomethane-monthly-average-prices/" target="_blank" rel="noopener">QCI/Platts UK waste&#8209;biomethane price assessments (GBP/MWh)</a></li>
+      <li><a href="https://www.gov.uk/government/publications/the-environment-agencys-regulation-of-waste-pneumatic-tyres-and-their-export/progress-update-march-2026-environment-agencys-regulation-of-waste-pneumatic-tyres-and-their-export" target="_blank" rel="noopener">Environment Agency &mdash; March 2026 update on T8 abolition, 711 inspected sites</a></li>
+      <li><a href="https://www.energy-uk.org.uk/publications/cutting-business-energy-costs-the-case-for-action/" target="_blank" rel="noopener">Energy UK &mdash; case for cutting business energy costs</a></li>
+      <li><a href="https://portsmouth-port.co.uk/news/a-green-revolution-begins-at-portsmouths-port/" target="_blank" rel="noopener">Portsmouth Port &mdash; Sea Change shore&#8209;power chargeport (&pound;19.8m)</a></li>
+      <li><a href="https://www.business.gov.uk/invest-in-uk/investment/solent/" target="_blank" rel="noopener">Solent Freeport &mdash; customs/tax status, 7.2% maritime GVA forecast</a></li>
+      <li><a href="https://assets.publishing.service.gov.uk/media/67f4dcb3c2fea2548f4eff64/dft-maritime-decarb-strategy-25.pdf" target="_blank" rel="noopener">DfT &mdash; UK Maritime Decarbonisation Strategy; UK&#8209;ETS extension to maritime from July 2026</a></li>
+      <li><a href="https://sea-lng.org/2026/01/shippings-methane-decarbonisation-pathway-becomes-a-clear-runway-for-the-future/" target="_blank" rel="noopener">SEA&#8209;LNG &mdash; 222 ports, 62 bunker vessels for LNG/LBM in 2025</a></li>
+      <li><a href="https://www.powerhouseenergy.co.uk/" target="_blank" rel="noopener">Powerhouse Energy / Peel NRE &mdash; Protos and DMG pipeline</a></li>
+      <li><a href="https://velocys.com/2026/03/30/fischer-tropsch-system-commissioning-at-sumo-facility-in-wednesbury-advances-uk-waste-to-saf-pathway/" target="_blank" rel="noopener">Velocys &mdash; FT commissioning at SuMo Wednesbury, March 2026</a></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================= 08 What I can do now ================= -->
+<section id="capability">
+  <div class="wrap">
+    <h2><span class="num">08</span>What I can do now</h2>
+    <p>Plain language, no jargon, no &ldquo;AI&#8209;native&rdquo; nonsense.</p>
+
+    <div class="grid">
+      <div class="card"><h5>Research</h5><div class="big">~25 analysts</div><div class="lbl">Parallel deep web research with citations, comparator scans, regulatory tracking. What used to be a graduate intern for a week is an hour.</div></div>
+      <div class="card"><h5>Documents</h5><div class="big">Decks &amp; memos</div><div class="lbl">Investor decks, exec summaries, regulatory submissions, technical specs. End to end. With a real eye for tone &mdash; you&rsquo;ll recognise yours back to you.</div></div>
+      <div class="card"><h5>Systems</h5><div class="big">Builds &amp; ships</div><div class="lbl">Websites (this page), dashboards, data pipelines, internal tools, automation of paperwork. I run a personal stack of ~8 production tools.</div></div>
+      <div class="card"><h5>Comms</h5><div class="big">Outbound</div><div class="lbl">CRM hygiene, outreach campaigns, follow-up sequences, partner research. Without the &ldquo;sent via Mailchimp&rdquo; feel.</div></div>
+      <div class="card"><h5>Modelling</h5><div class="big">Financial &amp; ops</div><div class="lbl">Three-statement models, sensitivity analyses, scenario calculators (like the one above), site economics.</div></div>
+      <div class="card"><h5>Operating mode</h5><div class="big">Single&#8209;person team</div><div class="lbl">I can behave as one person, or as the equivalent of a small parallel team of ~25 &mdash; depending on the shape of the work. Same hands. Different fan&#8209;out.</div></div>
+    </div>
+
+    <p>I&rsquo;m not pitching to be your CTO. I&rsquo;m saying: if there is a project, anywhere &mdash; yours or in your network &mdash; that needs a one&#8209;person systems-and-comms operator who used to need a team, I&rsquo;m available, formally or informally, paid or share, full or fractional.</p>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="cta">
+  <div class="wrap">
+    <h2>Pick the lowest&#8209;effort one</h2>
+    <p>You don&rsquo;t have to do all of these. Pick one. Even &ldquo;still alive, still in the game&rdquo; is a useful answer.</p>
+    <div class="actions">
+      <a class="btn primary" href="mailto:john.lucas124@gmail.com?subject=Re%3A%20Long%20time%20%E2%80%94%20quick%20hello%20from%20Loz&body=Loz%20%E2%80%94%20one%20line%20answer%3A%20">Reply &ldquo;still alive&rdquo;</a>
+      <a class="btn" href="https://calendar.app.google" target="_blank" rel="noopener">Pick a 30&#8209;min slot</a>
+      <a class="btn" href="mailto:lozturner@gmail.com">Email Loz directly</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>PROMETHEUS&nbsp;II &middot; written in one afternoon &middot; May 2026 &middot; Loz Turner + Claude (Anthropic)</div>
+    <div>This page is a single self&#8209;contained HTML file. View source if you don&rsquo;t believe me.</div>
+  </div>
+</footer>
+
+<script>
+/* ============ HERO flame canvas ============ */
+(function(){
+  const c=document.getElementById('flame');
+  if(!c) return;
+  const ctx=c.getContext('2d',{alpha:true});
+  let w,h,dpr,particles;
+  function resize(){
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    w=c.clientWidth; h=c.clientHeight;
+    c.width=w*dpr; c.height=h*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function init(){
+    particles=[];
+    const n=Math.floor((w*h)/9000);
+    for(let i=0;i<n;i++) particles.push(spawn());
+  }
+  function spawn(){
+    return {
+      x: Math.random()*w,
+      y: h + Math.random()*60,
+      r: 0.5 + Math.random()*2.5,
+      vx: (Math.random()-0.5)*0.3,
+      vy: -0.4 - Math.random()*1.4,
+      life: 0,
+      max: 200 + Math.random()*300,
+      hue: 18 + Math.random()*22
+    };
+  }
+  function tick(){
+    ctx.clearRect(0,0,w,h);
+    // soft base glow
+    const g=ctx.createLinearGradient(0,h*0.4,0,h);
+    g.addColorStop(0,'rgba(255,122,24,0)');
+    g.addColorStop(1,'rgba(255,122,24,.08)');
+    ctx.fillStyle=g; ctx.fillRect(0,h*0.4,w,h*0.6);
+    for(const p of particles){
+      p.life++;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy *= 0.995;
+      const alpha = Math.max(0, 1 - p.life/p.max);
+      ctx.beginPath();
+      ctx.fillStyle = `hsla(${p.hue},90%,55%,${alpha*0.7})`;
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+      if(p.life>p.max || p.y < -10){
+        Object.assign(p, spawn());
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  const onResize=()=>{ resize(); init(); };
+  window.addEventListener('resize',onResize,{passive:true});
+  resize(); init(); tick();
+})();
+
+/* ============ Live financial model ============ */
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmtMoney = v => {
+    const sign = v<0?'-':'';
+    const a = Math.abs(v);
+    if(a>=1e6) return sign+'£'+(a/1e6).toFixed(2)+'m';
+    if(a>=1e3) return sign+'£'+(a/1e3).toFixed(0)+'k';
+    return sign+'£'+a.toFixed(0);
+  };
+  const HOURS = 8400; // hrs/yr operating, per the 2021 doc
+
+  function recompute(){
+    const nGas = +$('nGas').value;
+    const nBurn = +$('nBurn').value;
+    const gate = +$('gate').value;        // £/t
+    const elec = +$('elec').value;         // p/kWh
+    const bio  = +$('bio').value;          // p/kg
+    const rtfc = +$('rtfc').value;         // p/credit
+    const rtfcKg = +$('rtfcKg').value;     // credits per kg biomethane
+    const share = +$('share').value;       // % of RTFCs going to CNG
+
+    // display values
+    $('vGas').firstChild.nodeValue = nGas;
+    $('vBurn').firstChild.nodeValue = nBurn;
+    $('vGate').firstChild.nodeValue = '£'+gate;
+    $('vElec').firstChild.nodeValue = elec+'p';
+    $('vBio').firstChild.nodeValue = bio+'p';
+    $('vRtfc').firstChild.nodeValue = rtfc+'p';
+    $('vRtfcKg').firstChild.nodeValue = rtfcKg.toFixed(2);
+    $('vShare').firstChild.nodeValue = share+'%';
+
+    // gate fee revenue (capacity scales with kit count; cap at 35,000 t/yr licensed)
+    const cap = Math.min(35000, 10000 + (nGas-3)*3000 + (nBurn-1)*4000);
+    const gateRev = Math.max(0, cap) * gate;
+
+    // electricity: each VB6000 exports 1 MW = 1000 kW * HOURS * p/kWh /100
+    const elecRev = nBurn * 1000 * HOURS * elec / 100;
+
+    // biomethane: each MC500 = 2000 kg/day * 350 days
+    const bioKg = nGas * 2000 * (HOURS/24);
+    const bioRev = bioKg * (bio/100);
+
+    // RTFCs: variable credits per kg biomethane, less CNG share
+    const rtfcRev = bioKg * rtfcKg * (rtfc/100) * (1 - share/100);
+
+    const total = gateRev + elecRev + bioRev + rtfcRev;
+
+    $('oGate').textContent  = fmtMoney(gateRev);
+    $('oElec').textContent  = fmtMoney(elecRev);
+    $('oBio').textContent   = fmtMoney(bioRev);
+    $('oRtfc').textContent  = fmtMoney(rtfcRev);
+    $('oTotal').textContent = fmtMoney(total);
+  }
+  const inputs = ['nGas','nBurn','gate','elec','bio','rtfc','rtfcKg','share'];
+  inputs.forEach(id=>$(id).addEventListener('input',recompute));
+
+  const presets = {
+    '2021':   {nGas:3,  nBurn:1, gate:40,  elec:5,  bio:20, rtfc:79, rtfcKg:1.634, share:20},
+    '2026':   {nGas:3,  nBurn:1, gate:55,  elec:15, bio:20, rtfc:27, rtfcKg:1.0,   share:20},
+    'upside': {nGas:12, nBurn:1, gate:55,  elec:15, bio:20, rtfc:27, rtfcKg:1.0,   share:20},
+    'wedge':  {nGas:1,  nBurn:0, gate:55,  elec:15, bio:0,  rtfc:27, rtfcKg:1.0,   share:0}
+  };
+  document.querySelectorAll('[data-preset]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const p = presets[btn.dataset.preset];
+      if(!p) return;
+      Object.entries(p).forEach(([k,v])=>{ $(k).value = v; });
+      recompute();
+    });
+  });
+  recompute();
+})();
+</script>
+</body>
+</html>
